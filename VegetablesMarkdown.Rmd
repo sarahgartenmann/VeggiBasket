@@ -1,0 +1,341 @@
+---
+title: "A Journey into the Contents of a Blue Vegetable Basket"
+author: "Sarah Gartenmann"
+date: "25 November 2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Introduction
+
+This is a personal project of mine that I started a year ago out of curiosity and the necessity of wanting something to practice my data analysis skills in R, the use of Markdown, and eventually also R Shiny. 
+
+The focus of Birsmattehof farm in Therwil is the production of organic vegetables. These can be bought directly from their farm, their farm stands at various weekly markets around Basel, or they can ordered for delivery on a weekly basis. 46 times a year we recieve a basket full of freshly harvested organic vegetables, the contence of which is a surprise: the variety and amount is determined by the season. On average, our basket should contain 3.5 - 5 kilos per week. 
+
+Over the course of many months, I weighed all vegetables that we recieved in the basket. I then correlated these data the with local meterological data in hopes of finding some interesting trends.  
+
+More information to the farm and their products can found on their website https://www.birsmattehof.ch/. 
+
+![Birsmattehof, Therwil](C:\Users\gartens1\Desktop\BMH\BirsmattehofBild.png) 
+
+## Installing and Loading the Necessary R Packages
+
+For the transformation, analysis, and visualisation of the data several packages were used:
+
+**tidyverse**, version 1.3.1
+    
+    Citation: Wickham et al., (2019). Welcome to the tidyverse. Journal of Open Source Software, 4(43), 1686, https://doi.org/10.21105/joss.01686
+
+**dyplr**, version 1.0.5
+
+    Citation: Hadley Wickham, Romain Francois, Lionel Henry and Kirill Mueller (2021). dplyr: A Grammar of Data Manipulation. R package version 1.0.5. https://CRAN.R-project.org/package=dplyr 
+    
+**stringr**, version 1.4.0
+     
+    Citation: Hadley Wickham (2019). stringr: Simple, Consistent Wrappers for Common String Operations. R package version 1.4.0. https://CRAN.R-project.org/package=stringr
+    
+**lubridate**, version 1.7.10
+    
+    Citation: Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical Software, 40(3), 1-25. URL https://www.jstatsoft.org/v40/i03/.
+    
+```{r Installing and Loading the Necessary R Packages, message = FALSE}
+### Installing Packages:
+# install.packages("tidyverse")
+# install.packages("dplyr")
+# install.packages("stringr")
+# install.packages("lubridate")
+
+### Loading Packages
+library(dplyr)
+library(stringr)
+library(tidyverse)
+library(lubridate)
+
+### Obtaining Citations
+# citation(package="dplyr", lib.loc = NULL, auto = NULL)
+# citation(package="tidyverse", lib.loc = NULL, auto = NULL)
+# citation(package="stringr", lib.loc = NULL, auto = NULL)
+# citation(package="lubridate", lib.loc = NULL, auto = NULL)
+
+```
+
+## Importing Data
+
+Two raw data files were imported for this project. 
+
+The first data set, "BMH_Veggiedata_V1.csv"" is a csv file containing all vegetable weights collected spanning from the 10th of November 2020 to the 16th of November 2021. This file contains a column for the vegetable category (i.e. cabbage), a second column for the specific vegetable (i.e. red cabbage), and then columns for the weights of all produce for each date when a basket was collected. 
+
+The second file "weather.csv" is a csv file containing meterological data from Basel during the same time period. This data was downloaded from Meteoblue (meteoblue AG, Greifengasse 38, CH-4058, Basel, Switzerland) at https://www.meteoblue.com/en/weather/archive/export/basel_switzerland_2661604 on the 16.11.2021. This file contains a column for the date, a second for every hour of the day, and a column for measurements of temperature, sunshine, precipiation, snowfall, humidity, and cloud cover. 
+
+These data sets will be referred to as the "Vegetable Data Set" and the "Weather Data Set", respectively, from here on out.   
+
+```{r Importing Files, message = FALSE, results = "hide"}
+# Setting working directory and listing files
+setwd("C:/Users/gartens1/Desktop/BMH")
+list.files()
+
+# Vegetable Data
+filepath <- "C:/Users/gartens1/Desktop/BMH/BMH_Veggidata_V1.csv"
+rawdata <- read.csv(filepath, header = TRUE, sep = ";")
+
+# Weather Data
+filepath2 <- "C:/Users/gartens1/Desktop/BMH/weather.csv"
+rawdata2 <- read.csv(filepath2, header = TRUE, sep = ",")
+
+```
+
+## Tidy Data
+
+Tidy data dictates that each variable has its own column and each observation has its own row. This format provides a standard way for structuring a dataset which allows for easier analysis. As neither of the two datasets are tidy, the first step of this analysis will deal with wrangling the data into this format. The following sections describe each step of the transformation for both data sets.
+
+### Vegetable Data
+
+With the `head()` function a sneak peak at the original dataset can be taken to see its stucture. All unneeded columns and rows are removed. The last row contains the summed weight of all vegetables in each basket. The three last columns contain calculations done in the original excel file. These rows and columns are not needed as these calculations will be performed off of the tidy data set using R code. To remove them in a way so that the code will also work should additional rows (i.e. new vegetable types) and columns (i.e. more measurement dates) be added to the original dataset, the variables `nr`and `nc` were created where the former is the number of rows minus 1 and the latter is the number of columns minus 3. The original `rawdata` dataset was then transformed accordingly and stored as `data1`.   
+
+The 3.5 - 5 kilos of vegetables that we recieve weekly throughout the year are split into 46 baskets. The vegetables are delievered weekly except for during the months of January and February, where the basket contains the doubled amount of produce but is only delivered every two weeks. Also, no basket is delievered the week between Christmas and New Years. To account for this, the recorded data from the dates of the 12.01.2021, 26.01.2021, 09.02.2021, 23.02.2021, and the 09.03.2021 is halved and copied into the weeks of the 05.01.2021, 19.01.2021, 02.02.2021, 16.02.2021, and the 02.03.2021, respectively. 
+
+
+```{r Selecting Relevant Rows/Columns from Vegetable Dataset, message = FALSE, results = "hide"}
+# Taking a look at the original dataset
+head(rawdata)
+
+# Removing unncessary columns/rows
+nr <- nrow(rawdata) - 1
+nc <- ncol(rawdata) - 3
+data1 <- rawdata[c(1:nr),c(1:nc)]
+
+# Splitting doublely-sized baskets into two weeks
+data1$X05.01.2021 <- (data1$X12.01.2021)/2 
+data1$X12.01.2021 <- (data1$X12.01.2021)/2
+
+data1$X19.01.2021 <- (data1$X26.01.2021)/2 
+data1$X26.01.2021 <- (data1$X26.01.2021)/2
+
+data1$X02.02.2021 <- (data1$X09.02.2021)/2 
+data1$X09.02.2021 <- (data1$X09.02.2021)/2
+
+data1$X16.02.2021 <- (data1$X23.02.2021)/2 
+data1$X23.02.2021 <- (data1$X23.02.2021)/2
+
+data1$X02.03.2021 <- (data1$X09.03.2021)/2 
+data1$X02.03.2021 <- (data1$X09.03.2021)/2
+
+```
+
+To tidy the vegetable dataset, I first generated a dataframe `cnames` with all except the first two column names using `colnames()`. The dates in the columns contain the letter "X" in the name (e.g. "X02.02.2021"). Using `str_remove()` this part of the string was removed. The format of the vector was then changed to "Date" using the `as.Date()` command. Using the command `as.data.frame()` this repeating list was transformed into a dataframe.  
+     
+Similarly, two dataframes `vegcat` and `veg` containing a repetition of the vegetable categories and vegetables (columns 1 and 2, respectively) "nc-2" times was generated (the first two columns from "nc" were subtracted to account for the columns with the vegetable names and their categories).  
+
+The dataframe `weight` containing all weight measurements was generated by unlisting all columns (except 1 and 2) of `data1`.  
+
+These four dataframes were combined together using `cbind()` to generate the dataframe `veggiedata`. Finally, using the command `na.omit()`, all NA values were removed. The four columns of the tidy dataframe `veggiedata` were renamed appropriately with the command `colnames()`. 
+
+```{r Tidying the Vegetable Dataset}
+
+# generating date vector and removing "X"
+cnames <- colnames(data1[-c(1,2)])
+cnames <- str_remove(cnames, "[X]")
+cnames <- as.Date(cnames, format = "%d.%m.%Y")
+
+# generating dataframe of dates repeated "nr"" times
+date <- as.data.frame(rep(cnames, each = nr))
+
+# generating dataframes of all vegetables and vegetable categories "nc" minus 2 times.
+vegcat <- as.data.frame(rep(data1$Vegetable.Category[1:nr], times = nc-2))
+veg <- as.data.frame(rep(data1$Vegetable[1:nr], times = nc-2))
+
+# generating a dataframe of all weights
+weight <- as.data.frame(unlist(data1[,-c(1,2)]))
+
+# cbind and remove all NAs
+veggiedata <- na.omit(cbind(date, vegcat, veg, weight))
+
+# rename columns
+colnames(veggiedata) <- c("Date", "Vegetable Category", "Vegetable", "Weight")
+
+```
+
+For neatness, the environment was cleared of all unneeded objects except for the final tidy `veggiedata` dataframe. 
+
+```{r Clearing the Environment}
+# remove all unneeded objects from environment
+rm(data1, date, rawdata, veg, vegcat, weight, cnames, filepath, nc, nr)
+
+```
+
+### Weather Data
+
+With the `head()` function a sneak peak at the original dataset can be taken to see its stucture. The parameter was set to `15` to be able to properly see the format. The first 9 rows of the dataset will not be needed and were deleted to generate `data2`. The first step was to transform the date-time column into a properly formatted date. This was done using `str_split_fixed()` to split the original column into two columns, date and time, respectively, separated by the letter `"T"`. The date column was transformed into `date` format using `ymd()` (the time column was not needed for this project). This date column was bound to the data using `cbind()` to generate the dataframe `weather`. The original, messy date-time column was removed. The class of the columns containing the weather data were changed to `numeric` using `transform()`. Finally, all columns were renamed appropriately using `colnames()`. 
+
+```{r Selecting Relevant Rows/Columns from Weather Dataset, message = FALSE, results = "hide"}
+# Taking a look at the original dataset
+head(rawdata2, 15)
+
+# Remove unncessary rows at the top
+data2 <- rawdata2[-c(1:9),]
+
+# fix date/time issue: split string and generate column only with date 
+date2 <- as.data.frame(str_split_fixed(data2[,1], "T", 2))
+date2 <- ymd(date2[,1])
+
+# bind date column to the dataframe and remove all unneeded columns 
+weather <- cbind(date2, data2)
+weather <- weather[,-c(2)]
+
+weather <- transform(weather,
+               Basel = as.numeric(Basel),
+               Basel.1 = as.numeric(Basel.1),
+               Basel.2 = as.numeric(Basel.2),
+               Basel.3 = as.numeric(Basel.3),
+               Basel.4 = as.numeric(Basel.4),
+               Basel.5 = as.numeric(Basel.5))
+
+# rename columns appropriately and change class from character to numeric
+colnames(weather) <- c("Date", "Temperature_C", "Sunshine_min", "Precipitation_mm", "Snowfall_cm", "Humidity_per", "Cloudcover_per")
+
+```
+
+Although the `weather` dataframe now appears neat, it is not yet in the tidy format. In the next steps individual dataframes for each weather condition were generated with just one value per day (i.e. the average daily temperature, the daily sum of precipitation, etc). For the measurements of temperature, humidity, and cloudcover the daily average values were calculated by grouping data by `Date` in the `weather` dataset and calculating the mean value. Similarily, for the measurements of sunshine, snow, and precipitation the daily totals were calculated by grouping data by `Date` in the `weather` dataset and calculating the sum of each. In order to generate the final `weather2` dataframe an additional column with the name of the measurement (i.e. `"Temperature_C"`, `"Sunshine_min"`) was made and placed in between the date and the measurement value columns. Using `nrow()` the number of rows (i.e. the number of measurment days) was calculated and stored as `days`. This variable was then used to generate the correct length for the column containing the `"Condition"`.  For each weather condition the three columns were renamed to `"Date"`, `"Condition"`, and `"Measurement"`. The six individual dataframes were then all joined together using `rbind()` to generate the final compact tidy dataframe `weather2`.  
+
+``` {r Generating Individual Tidy Datasets for each Weather Condition, message = FALSE, results = "hide"}
+
+# Temperature: daily average temperture (average)
+temperature <- weather %>%
+  group_by(Date) %>%
+  summarise(Temperature_C = mean(Temperature_C)) %>%
+  ungroup()
+
+days <- nrow(temperature)
+
+temp1 <- as.data.frame(rep("Temperature_DailyAverage", times = days))
+temperature <- cbind(temperature$Date, temp1, temperature$Temperature_C) 
+colnames(temperature) <- c("Date", "Condition", "Measurement")
+
+# Sunshine: daily sunshine minutues (sum)
+sunshine <- weather %>%
+   group_by(Date) %>%
+   summarise(Sunshine_min = sum(Sunshine_min)) %>%
+   ungroup()
+
+sun1 <- as.data.frame(rep("Sunshine_DailyAverage", times = days))
+sunshine <- cbind(sunshine$Date, sun1, sunshine$Sunshine_min) 
+colnames(sunshine) <- c("Date", "Condition", "Measurement")
+
+# Precipitation: daily preciptation (sum)
+precipitation <- weather %>%
+   group_by(Date) %>%
+   summarise(Precipitation_mm = sum(Precipitation_mm)) %>%
+   ungroup()
+
+precip1 <- as.data.frame(rep("Precipitation_DailySum", times = days))
+precipitation <- cbind(precipitation$Date, precip1, precipitation$Precipitation_mm) 
+colnames(precipitation) <- c("Date", "Condition", "Measurement")
+
+# Snowfall: daily snowfall (sum)
+snowfall <- weather %>%
+   group_by(Date) %>%
+   summarise(Snowfall_cm = sum(Snowfall_cm)) %>%
+   ungroup()
+
+snow1 <- as.data.frame(rep("Snowfall_DailySum", times = days))
+snowfall <- cbind(snowfall$Date, snow1, snowfall$Snowfall_cm) 
+colnames(snowfall) <- c("Date", "Condition", "Measurement")
+
+# Humidity: daily average humidity (average)
+humidity <- weather %>%
+  group_by(Date) %>%
+  summarise(Humidity_per = mean(Humidity_per)) %>%
+  ungroup()
+
+hum1 <- as.data.frame(rep("Humidity_DailyAverage", times = days))
+humidity <- cbind(humidity$Date, hum1, humidity$Humidity_per) 
+colnames(humidity) <- c("Date", "Condition", "Measurement")
+
+# Cloud Cover: daily average cloud cover (average)
+cloudcover <- weather %>%
+  group_by(Date) %>%
+  summarise(Cloudcover_per = mean(Cloudcover_per)) %>%
+  ungroup()
+
+cloud1 <- as.data.frame(rep("Cloudcover_DailyAverage", times = days))
+cloudcover <- cbind(cloudcover$Date, cloud1, cloudcover$Cloudcover_per) 
+colnames(cloudcover) <- c("Date", "Condition", "Measurement")
+
+# make one dataframe
+weather2 <- rbind(cloudcover, precipitation, humidity, temperature, snowfall, sunshine)
+
+# average <- weather %>%
+#   group_by(weather$date3) %>%
+#   summarise_all(.funs = mean) %>%
+#   ungroup()
+
+```
+
+For neatness, the environment was cleared of all unneeded objects except for the final tidy `weather2` dataframe. 
+
+```{r Clearing the Environment 2}
+# remove all unneeded objects from environment
+rm(weather, cloud1, cloudcover, hum1, humidity, precip1, precipitation, snow1, snowfall, sun1, sunshine, temp1, temperature, data2, rawdata2, days, filepath2, date2)
+
+```
+
+## Data Exploration
+
+In this section, I decided to explore the `veggiedata` dataset and see if I can find interesting correlations with the `weather2` dataset. For this exploratory data analysis I used `ggplot()` to graphically display the data. 
+
+### Spread of different Vegetable Types throughout the Year
+
+xxxx
+
+```{r data exploration 1}
+
+
+```
+
+
+### Correlation of Vegetable Categories and Daily Average Temperature 
+
+xxxx
+
+```{r data exploration 2}
+
+cabbage <- veggiedata %>%
+  filter (veggiedata$`Vegetable Category` == "Cabbage")
+
+plotcabbage <- ggplot(data=cabbage, aes(x=Date, y = Weight)) + 
+  geom_bar(stat = "identity", aes(fill = Vegetable)) +
+  xlab("Date") +
+  ylab("Weight (gr)") +
+  ggtitle("Cabbage Types throughout the Year") +
+  scale_y_continuous(breaks = seq(0,2000, by = 250)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5), 
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5), 
+        legend.position = c(0.85,0.9),
+        legend.key.size = unit(0.25, 'cm'),
+        legend.background = element_blank(),
+        panel.background = element_rect(fill = "grey96")) 
+plotcabbage
+
+temp <- weather2 %>%
+  filter (weather2$Condition == "Temperature_DailyAverage")
+
+plottemp <- ggplot(data=temp, aes(x=Date, y = Measurement)) + 
+  geom_line() +
+  geom_smooth(method = "loess")
+plottemp
+
+cabbagetemp <- plotcabbage +
+  geom_smooth(method = "loess", data=temp, aes(x=Date, y = Measurement*70, 
+                             color = ..y..), show.legend = F) +
+  scale_y_continuous(sec.axis = sec_axis(trans=~./70, 
+                                         name = "Average Daily Temperature (C)", 
+                                         breaks = seq(0,25, by = 5))) +
+  scale_colour_gradient2(high = "red")
+cabbagetemp
+
+```
