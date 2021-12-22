@@ -39,24 +39,31 @@ For the transformation, analysis, and visualisation of the data several packages
     
     Citation: Garrett Grolemund, Hadley Wickham (2011). Dates and Times Made Easy with lubridate. Journal of Statistical Software, 40(3), 1-25. URL https://www.jstatsoft.org/v40/i03/.
     
+**plotly**, version 4.10.0
+    
+    Citation: C. Sievert. Interactive Web-Based Data Visualization with R, plotly, and shiny. Chapman and Hall/CRC Florida, 2020. URL https://plotly-r.com.    
+    
 ```{r Installing and Loading the Necessary R Packages, message = FALSE}
 ### Installing Packages:
 # install.packages("tidyverse")
 # install.packages("dplyr")
 # install.packages("stringr")
 # install.packages("lubridate")
+# install.packages("plotly")
 
 ### Loading Packages
 library(dplyr)
 library(stringr)
 library(tidyverse)
 library(lubridate)
+library(plotly)
 
 ### Obtaining Citations
 # citation(package="dplyr", lib.loc = NULL, auto = NULL)
 # citation(package="tidyverse", lib.loc = NULL, auto = NULL)
 # citation(package="stringr", lib.loc = NULL, auto = NULL)
 # citation(package="lubridate", lib.loc = NULL, auto = NULL)
+# citation(package="plotly", lib.loc = NULL, auto = NULL)
 
 ```
 
@@ -76,7 +83,7 @@ setwd("C:/Users/gartens1/Desktop/BMH")
 list.files()
 
 # Vegetable Data
-filepath <- "C:/Users/gartens1/Desktop/BMH/BMH_Veggidata_V1.csv"
+filepath <- "C:/Users/gartens1/Desktop/BMH/BMH_Veggidata_V3.csv"
 rawdata <- read.csv(filepath, header = TRUE, sep = ";")
 
 # Weather Data
@@ -119,7 +126,7 @@ data1$X16.02.2021 <- (data1$X23.02.2021)/2
 data1$X23.02.2021 <- (data1$X23.02.2021)/2
 
 data1$X02.03.2021 <- (data1$X09.03.2021)/2 
-data1$X02.03.2021 <- (data1$X09.03.2021)/2
+data1$X09.03.2021 <- (data1$X09.03.2021)/2
 
 ```
 
@@ -152,7 +159,7 @@ weight <- as.data.frame(unlist(data1[,-c(1,2)]))
 veggiedata <- na.omit(cbind(date, vegcat, veg, weight))
 
 # rename columns
-colnames(veggiedata) <- c("Date", "Vegetable Category", "Vegetable", "Weight")
+colnames(veggiedata) <- c("Date", "Vegetable_Category", "Vegetable", "Weight")
 
 ```
 
@@ -284,11 +291,47 @@ rm(weather, cloud1, cloudcover, hum1, humidity, precip1, precipitation, snow1, s
 
 In this section, I decided to explore the `veggiedata` dataset and see if I can find interesting correlations with the `weather2` dataset. For this exploratory data analysis I used `ggplot()` to graphically display the data. 
 
-### Spread of different Vegetable Types throughout the Year
+### Distribution of different Vegetable Types throughout the Year
 
-xxxx
+To visualise the distribution of different vegetable categories in each basket throughout the entire measurment period, the plot `allveg1` was generated. First, the `weightsum` dataframe was generated from `veggiedata` by grouping all `weights` by `Date` and using the `summarise()` function to calculate the total weight of each basket. Using `mean()` the average weight of each basket was calculated and assigned to `averageweight`. Using `ggplot()` the barplot `allveg1` was generated. A horizontal line marking the average basket weight was added to the plot using `geom_hline()` with the value of `averageweight` as its y-intercept.       
 
 ```{r data exploration 1}
+
+# Calculating total basket weight per measurement date
+weightsum <- veggiedata %>%
+  group_by(Date) %>%
+  summarise(Weight = sum(Weight)) %>%
+  ungroup()
+
+weightsumtotal <- sum(weightsum$Weight)
+
+# Calculating the average weight of each basket
+averageweight <- round(mean(weightsum$Weight), digits = 1)
+
+# Plotting: 
+allveg1 <- ggplot(data=veggiedata, 
+                  aes(x=Date, y=Weight)) +
+  geom_bar(stat = "identity", 
+           aes(fill = Vegetable_Category), color = "black") +
+  xlab("Date") +
+  ylab("Weight (gr)") +
+  ggtitle("Distribution of Vegetable Types throughout the Year") +
+  theme(legend.key.size = unit(0.25, 'cm'), 
+        axis.text.x = element_text(angle = 45, vjust = 1, hjust = 1), 
+        axis.title.x = element_text(vjust = 0)) +
+  scale_x_date(date_breaks = "1 month", 
+               date_labels = "%m/%y") +
+  scale_y_continuous(name = "Weight (gr)", breaks = seq(0, 7000, 1000)) +
+  geom_hline(yintercept = mean(weightsum$Weight), 
+             col = "black",  
+             lwd = 0.5, 
+             linetype = "dotted") +
+  annotate("text", 
+           x = as.Date("2021-11-23"), 
+           y = c(5200,5000, 4600), 
+           label = c("Mean Basket","Weight (gr):", averageweight), 
+           size = 2.7) 
+allveg1
 
 
 ```
@@ -296,44 +339,227 @@ xxxx
 
 ### Correlation of Vegetable Categories and Daily Average Temperature 
 
-xxxx
+To take a closer look at the vegetable distribution in the basket throughout the year, subsets of `veggiedata` were plotted and correlated with the daily average temperature from the `weather2` dataset. By flitering by the term `Cabbage` in `Vegetable_Category`, the dataframe `cabbage` was generated from `veggiedata`. Similarly, by filtering by the term `Temperature_DailyAverage` in `Condition` in the `weather2` dataframe, the dataframe `temp` was generated. Using `ggplot()` the barplot `plotcabbage` was created showing the distribution of cabbage types over time. This plot was then added to the line graph showing the daily average temperature in the plot `cabbagetemp`.       
 
-```{r data exploration 2}
+```{r data exploration 2, message = FALSE}
 
+# Cabbage Types and Temperature
 cabbage <- veggiedata %>%
-  filter (veggiedata$`Vegetable Category` == "Cabbage")
+  filter (Vegetable_Category == "Cabbage")
+
+cabbage$Vegetable <- gsub("Giant Kohlrabi", "Kohlrabi", cabbage$Vegetable) 
+
+cabbagecolours <- c("Broccoli" = "turquoise4", "Cauliflower" = "mediumpurple2", "Chinacabbage" = "darkseagreen2", "Red Cabbage" = "lightpink4", "White Cabbage" = "cornsilk2", "Green Cabbage" = "chartreuse2", "Brusselsprouts" = "seagreen4",  "Kale" = "darkslategrey", "Sauerkraut" = "thistle3", "Kohlrabi" = "lightpink2")
+
+xint <- c(as.Date(20/12, origin = "2020-12-01"), 
+          as.Date(21/03, origin = "2021-03-01"), 
+          as.Date(21/06, origin = "2021-06-01"),
+          as.Date(21/09, origin = "2021-09-01"), 
+          as.Date(21/12, origin = "2021-12-01"))
 
 plotcabbage <- ggplot(data=cabbage, aes(x=Date, y = Weight)) + 
-  geom_bar(stat = "identity", aes(fill = Vegetable)) +
+  geom_bar(stat = "identity", aes(fill = Vegetable), color = "black") +
   xlab("Date") +
   ylab("Weight (gr)") +
-  ggtitle("Cabbage Types throughout the Year") +
-  scale_y_continuous(breaks = seq(0,2000, by = 250)) +
+  ggtitle("The Distribution of Cabbage Types \n throughout the Seasons of the Year") +
+  scale_y_continuous(breaks = seq(0,4000, by = 250)) +
   scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") +
+  scale_fill_manual(name = "Cabbage Type", 
+                    values = cabbagecolours) +
   theme(plot.title = element_text(face = "bold", hjust = 0.5), 
         legend.title = element_blank(),
-        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5), 
-        legend.position = c(0.85,0.9),
-        legend.key.size = unit(0.25, 'cm'),
+        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5),
+        axis.title.x = element_text(size = 10),
+        axis.text.y = element_text(hjust = 1.2),
+        axis.title.y = element_text(size = 10, vjust = 1),
+        # legend.position = c(0.83,0.79),
+        legend.key.size = unit(0.2, 'cm'),
+        legend.text = element_text(size = 6.5),
         legend.background = element_blank(),
-        panel.background = element_rect(fill = "grey96")) 
-plotcabbage
+        panel.background = element_rect(fill = "grey96")) +
+  geom_vline(xintercept = xint, 
+              linetype = "dashed") +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-01-15"), y = 3500, label = "Winter")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-04-15"), y = 3500, label = "Spring")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-07-15"), y = 3500, label = "Summer")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-10-15"), y = 3500, label = "Autumn"))
+
+#plotcabbage
 
 temp <- weather2 %>%
   filter (weather2$Condition == "Temperature_DailyAverage")
 
-plottemp <- ggplot(data=temp, aes(x=Date, y = Measurement)) + 
-  geom_line() +
-  geom_smooth(method = "loess")
-plottemp
+ylim.veg <- c(0, 4000)
+ylim.temp <- c(-5, 30)
+
+b <- diff(ylim.veg)/diff(ylim.temp)
+a <- ylim.veg[1] - b*ylim.temp[1]
+
 
 cabbagetemp <- plotcabbage +
-  geom_smooth(method = "loess", data=temp, aes(x=Date, y = Measurement*70, 
-                             color = ..y..), show.legend = F) +
-  scale_y_continuous(sec.axis = sec_axis(trans=~./70, 
-                                         name = "Average Daily Temperature (C)", 
-                                         breaks = seq(0,25, by = 5))) +
-  scale_colour_gradient2(high = "red")
+  geom_line(data = temp, aes(y = a + (Measurement)*b, colour = ..y..), 
+            linetype = "solid", alpha = 0.6, show.legend = F) +
+  geom_smooth(method = loess, data = temp, aes(y = a + (Measurement)*b, colour = ..y..), 
+            linetype = "solid", alpha = 0.6, show.legend = F) +
+  scale_y_continuous("Weight (gr)", 
+                     sec.axis = sec_axis(~(.- a)/b, 
+                     name = "Average Daily Temperature (C)")) +  
+  scale_colour_gradient(low = "purple", high = "orange") 
 cabbagetemp
+  
+```
+
+```{r data exploration 3}
+# Root Vegetable Types
+roots <- veggiedata %>%
+  filter (Vegetable_Category == "Root Vegetable")
+
+# To simplify the analysis, some vegetable names are combined
+unique(roots$Vegetable)
+
+roots$Vegetable <- gsub("Rettich", "Radish", roots$Vegetable)
+roots$Vegetable <- gsub("Radishes", "Radish", roots$Vegetable)
+roots$Vegetable <- gsub("[()]", "", roots$Vegetable)
+roots$Vegetable <- gsub("Carrots Multicolour", "Carrots", roots$Vegetable)
+roots$Vegetable <- gsub("Carrots Orange", "Carrots", roots$Vegetable)
+
+rootscolours <- c("Carrots" = "coral1", "Radish" = "maroon2", "Salsify" = "khaki3", "Beetroot" = "maroon4", "Parsnip" = "cornsilk2", "Turnip" = "cornsilk4")
+
+plotroots <- ggplot(data=roots, aes(x=Date, y = Weight)) + 
+  geom_bar(stat = "identity", aes(fill = Vegetable), colour = "black") +
+  xlab("Date") +
+  ylab("Weight (gr)") +
+  ggtitle("The Distribution of Root Vegetables Types \n throughout the Seasons of the Year") +
+  scale_y_continuous(breaks = seq(0,4000, by = 250)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") +
+  scale_fill_manual(name = "Root Vegetable Type", 
+                    values = rootscolours) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5), 
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5),
+        axis.title.x = element_text(size = 10),
+        axis.text.y = element_text(hjust = 1.2),
+        axis.title.y = element_text(size = 10, vjust = 1),        
+        # legend.position = c(0.85,0.85),
+        legend.key.size = unit(0.25, 'cm'),
+        legend.background = element_blank(),
+        panel.background = element_rect(fill = "grey96")) +
+  geom_vline(xintercept = xint, 
+              linetype = "dashed") +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-01-15"), y = 3600, label = "Winter")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-04-15"), y = 3600, label = "Spring")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-07-15"), y = 3600, label = "Summer")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-10-15"), y = 3600, label = "Autumn"))
+# plotroots
+
+temp <- weather2 %>%
+  filter (weather2$Condition == "Temperature_DailyAverage")
+
+ylim.roots <- c(0, 4000)
+ylim.temp <- c(-5, 30)
+
+d <- diff(ylim.roots)/diff(ylim.temp)
+c <- ylim.roots[1] - d*ylim.temp[1]
+
+rootstemp <- plotroots +
+  geom_line(data = temp, aes(y = c + (Measurement)*d, colour = ..y..), 
+            linetype = "solid", alpha = 0.6, show.legend = F) +
+  geom_smooth(method = loess, data = temp, aes(y = c + (Measurement)*d, colour = ..y..), 
+            linetype = "solid", alpha = 0.6, show.legend = F) +
+  scale_y_continuous("Weight (gr)", 
+                     sec.axis = sec_axis(~(.- c)/d, 
+                     name = "Average Daily Temperature (C)")) +  
+  scale_colour_gradient(low = "purple", high = "orange") 
+rootstemp
+
+```
+
+
+```{r data exploration 4}
+
+# Amount of Carrots
+carrotscolours <- c("Carrots (Orange)" = "turquoise4", "Carrots (Multicolour)" = "mediumpurple2")
+
+# Setting the order for the bar chart
+vegorder <- unique(veggiedata$Vegetable)
+vegorder2 <- vegorder[!vegorder %in% c("Carrots (Orange)", "Carrots (Multicolour)")]
+vegorder3 <- c(vegorder2, "Carrots (Multicolour)", "Carrots (Orange)")
+
+veggiedata2 <- veggiedata %>%
+  arrange(Date, factor(Vegetable, levels = vegorder3)) 
+
+veggiedata2$Vegetable <- factor(veggiedata2$Vegetable, levels = vegorder3)
+
+# Calculating percentages
+basketweight <- veggiedata2 %>%
+  group_by(Date) %>%
+  summarise(Weight = sum(Weight))
+
+veggieweight <- merge(veggiedata2, basketweight, by = "Date", all = TRUE)
+colnames(veggieweight) <- c("Date", "Vegetable_Category", "Vegetable", "Weight", "Basket_Weight")  
+
+veggieweight2 <- veggieweight %>%
+  summarise(Date = Date, 
+            Vegetable_Category = Vegetable_Category,
+            Vegetable = Vegetable,
+            Weight = Weight,
+            Basket_Weight = Basket_Weight,
+            Percent = (veggieweight$Weight / veggieweight$Basket_Weight)*100) %>% mutate_if(is.numeric, ~round(., 1))
+
+# Plotting
+plotcarrots <- ggplot(veggieweight2, aes(x=Date, y = Weight, fill = Vegetable)) +  
+  geom_bar(stat = "identity") +
+  xlab("Date") +
+  ylab("Weight (gr)") +
+  ggtitle("Percentage of Carrots in each \n Vegetable Basket throughout the Seasons of the Year") +
+  scale_y_continuous(breaks = seq(0,8000, by = 500)) +
+  scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") +
+  scale_fill_manual(values = carrotscolours) +
+  theme(plot.title = element_text(face = "bold", hjust = 0.5), 
+        legend.position = "none", 
+        legend.title = element_blank(),
+        axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5),
+        axis.title.x = element_text(size = 10),
+        axis.text.y = element_text(hjust = 1.2),
+        axis.title.y = element_text(size = 10, vjust = 1),
+        panel.background = element_rect(fill = "grey96")) +
+  geom_vline(xintercept = xint, linetype = "dashed") +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-01-15"), y = 7500, label = "Winter")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-04-15"), y = 7500, label = "Spring")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-07-15"), y = 7500, label = "Summer")) +
+  geom_text(aes(x = as.Date(02/21, origin = "2021-10-15"), y = 7500, label = "Autumn")) 
+
+
+# +
+#   geom_text(aes(label = ifelse(c(Vegetable == "Carrots (Orange)" | Vegetable == "Carrots (Multicolour)"), Percent, "")), 
+#             position = position_stack(vjust = 0.5),
+#             angle = 90,
+#             size = 1.5)
+plotcarrots
+
+
+
+plotlycarrots <- ggplotly(plotcarrots, 
+                          tooltip = veggieweight2$Percent)
+plotlycarrots
+```
+
+```{r data exploration 5}
+
+# adding weight=0 for multicoloured carrots to all rows/dates for which no multicoloured carrots were present in the basket
+# multicarrots <- filter(veggiedata, Vegetable == "Carrots (Multicolour)")
+# mx <- nrowbasket_nocarrots - nrow(multicarrots)
+# mv <- c(NA, "Root Vegetable", "Carrots (Multicolour)", 0)
+# rep.row <- function(mv, n) { 
+#   matrix(rep(mv, each = mx), nrow = mx)
+#   }
+# multi_zero <- as.data.frame(rep.row(mv, mx))
+# colnames(multi_zero) <- c("Date", "Vegetable_Category", "Vegetable", "Weight")
+# multicarrots2 <- rbind(multicarrots, multi_zero)
+# multicarrots2$Weight <- as.numeric(multicarrots2$Weight)
+
+
+
+
 
 ```
