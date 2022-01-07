@@ -9,11 +9,11 @@ knitr::opts_chunk$set(echo = TRUE)
 
 ## Introduction
 
-This is a personal project of mine that I started a year ago out of curiosity and the necessity of wanting something to practice my data analysis skills in R, the use of Markdown, and eventually also R Shiny. 
+This is a personal project of mine that I started a year ago out of curiosity and the necessity of wanting something to practice my data manipulation and analysis skills in R, the use of Markdown, and eventually also R Shiny in. 
 
-The focus of Birsmattehof farm in Therwil is the production of organic vegetables. These can be bought directly from their farm, their farm stands at various weekly markets around Basel, or they can ordered for delivery on a weekly basis. 46 times a year we recieve a basket full of freshly harvested organic vegetables, the contence of which is a surprise: the variety and amount is determined by the season. On average, our basket should contain 3.5 - 5 kilos per week. 
+The focus of Birsmattehof farm in Therwil is the production of organic vegetables. These can be bought directly from their farm, their farm stands at various weekly markets around Basel, or they can ordered for delivery on a weekly basis. I am a customer of the third option: 46 times a year we recieve a basket full of freshly harvested organic vegetables, the contence of which is a surprise, as the variety and amount is determined by the season and the local weather conditions. On average, our basket order contains 3.5 - 5 kilograms per week. 
 
-Over the course of many months, I weighed all vegetables that we recieved in the basket. I then correlated these data the with local meterological data in hopes of finding some interesting trends.  
+Over the course of many months, I weighed and noted all vegetables that we recieved in the basket. I then correlated these data the with local meterological data in hopes of finding some interesting trends.  
 
 More information to the farm and their products can found on their website https://www.birsmattehof.ch/. 
 
@@ -71,9 +71,9 @@ library(plotly)
 
 Two raw data files were imported for this project. 
 
-The first data set, "BMH_Veggiedata_V1.csv"" is a csv file containing all vegetable weights collected spanning from the 10th of November 2020 to the 16th of November 2021. This file contains a column for the vegetable category (i.e. cabbage), a second column for the specific vegetable (i.e. red cabbage), and then columns for the weights of all produce for each date when a basket was collected. 
+The first data set, "BMH_Veggiedata_V1.csv"" is a csv file containing all vegetable weights collected spanning from the 10th of November 2020 to the 21th of Decemeber 2021. This file contains a column for the vegetable category (i.e. cabbage), a second column for the specific vegetable (i.e. red cabbage), and then columns for the weights of all produce for each date when a basket was collected. 
 
-The second file "weather.csv" is a csv file containing meterological data from Basel during the same time period. This data was downloaded from Meteoblue (meteoblue AG, Greifengasse 38, CH-4058, Basel, Switzerland) at https://www.meteoblue.com/en/weather/archive/export/basel_switzerland_2661604 on the 16.11.2021. This file contains a column for the date, a second for every hour of the day, and a column for measurements of temperature, sunshine, precipiation, snowfall, humidity, and cloud cover. 
+The second file "weather.csv" is a csv file containing meterological data from Basel during the same time period. This data was downloaded from Meteoblue (meteoblue AG, Greifengasse 38, CH-4058, Basel, Switzerland) at https://www.meteoblue.com/en/weather/archive/export/basel_switzerland_2661604 on the 23.12.2021. This file contains a column for the date, a second for every hour of the day, and a column for measurements of temperature, sunshine, precipiation, snowfall, humidity, and cloud cover. 
 
 These data sets will be referred to as the "Vegetable Data Set" and the "Weather Data Set", respectively, from here on out.   
 
@@ -83,7 +83,7 @@ setwd("C:/Users/gartens1/Desktop/BMH")
 list.files()
 
 # Vegetable Data
-filepath <- "C:/Users/gartens1/Desktop/BMH/BMH_Veggidata_V3.csv"
+filepath <- "C:/Users/gartens1/Desktop/BMH/BMH_Veggidata_V1.csv"
 rawdata <- read.csv(filepath, header = TRUE, sep = ";")
 
 # Weather Data
@@ -100,7 +100,7 @@ Tidy data dictates that each variable has its own column and each observation ha
 
 With the `head()` function a sneak peak at the original dataset can be taken to see its stucture. All unneeded columns and rows are removed. The last row contains the summed weight of all vegetables in each basket. The three last columns contain calculations done in the original excel file. These rows and columns are not needed as these calculations will be performed off of the tidy data set using R code. To remove them in a way so that the code will also work should additional rows (i.e. new vegetable types) and columns (i.e. more measurement dates) be added to the original dataset, the variables `nr`and `nc` were created where the former is the number of rows minus 1 and the latter is the number of columns minus 3. The original `rawdata` dataset was then transformed accordingly and stored as `data1`.   
 
-The 3.5 - 5 kilos of vegetables that we recieve weekly throughout the year are split into 46 baskets. The vegetables are delievered weekly except for during the months of January and February, where the basket contains the doubled amount of produce but is only delivered every two weeks. Also, no basket is delievered the week between Christmas and New Years. To account for this, the recorded data from the dates of the 12.01.2021, 26.01.2021, 09.02.2021, 23.02.2021, and the 09.03.2021 is halved and copied into the weeks of the 05.01.2021, 19.01.2021, 02.02.2021, 16.02.2021, and the 02.03.2021, respectively. 
+The 3.5 - 5 kilograms of vegetables that we recieve weekly throughout the year are split into 46 baskets. The vegetables are delievered weekly except for during the months of January and February, where the basket contains the doubled amount of produce but is only delivered every two weeks. Also, no basket is delievered the week between Christmas and New Years. To account for this, the recorded data from the dates of the 12.01.2021, 26.01.2021, 09.02.2021, 23.02.2021, and the 09.03.2021 is halved and copied into the weeks of the 05.01.2021, 19.01.2021, 02.02.2021, 16.02.2021, and the 02.03.2021, respectively. 
 
 
 ```{r Selecting Relevant Rows/Columns from Vegetable Dataset, message = FALSE, results = "hide"}
@@ -130,13 +130,13 @@ data1$X09.03.2021 <- (data1$X09.03.2021)/2
 
 ```
 
-To tidy the vegetable dataset, I first generated a dataframe `cnames` with all except the first two column names using `colnames()`. The dates in the columns contain the letter "X" in the name (e.g. "X02.02.2021"). Using `str_remove()` this part of the string was removed. The format of the vector was then changed to "Date" using the `as.Date()` command. Using the command `as.data.frame()` this repeating list was transformed into a dataframe.  
+To tidy the vegetable dataset, I first generated a dataframe `cnames` with all except the first two column names using `colnames()`. The dates in the columns contain the letter "X" in the name (e.g. "X02.02.2021"). Using `str_remove()` this part of the string was removed. The format of the vector was then changed to "Date" using the `as.Date()` function. With `as.data.frame()` this repeating list was transformed into a dataframe.  
      
 Similarly, two dataframes `vegcat` and `veg` containing a repetition of the vegetable categories and vegetables (columns 1 and 2, respectively) "nc-2" times was generated (the first two columns from "nc" were subtracted to account for the columns with the vegetable names and their categories).  
 
 The dataframe `weight` containing all weight measurements was generated by unlisting all columns (except 1 and 2) of `data1`.  
 
-These four dataframes were combined together using `cbind()` to generate the dataframe `veggiedata`. Finally, using the command `na.omit()`, all NA values were removed. The four columns of the tidy dataframe `veggiedata` were renamed appropriately with the command `colnames()`. 
+These four dataframes were combined together using `cbind()` to generate the dataframe `veggiedata`. Finally, using `na.omit()`, all NA values were removed. The four columns of the tidy dataframe `veggiedata` were renamed appropriately with the command `colnames()`. 
 
 ```{r Tidying the Vegetable Dataset}
 
@@ -163,17 +163,57 @@ colnames(veggiedata) <- c("Date", "Vegetable_Category", "Vegetable", "Weight")
 
 ```
 
-For neatness, the environment was cleared of all unneeded objects except for the final tidy `veggiedata` dataframe. 
+The `veggiedata` dataframe contains four columns: `Date`, `Vegetable_Category`, `Vegetable`, and `Weight`. Two calculations were performed on these columns. Firstly, the total weight of each vegetable basket was calculated by summing all of the individual weights. Secondly, the percentage that each vegetable weighs in each basket was calculated (i.e. on the 2020-11-10, Red Cabbage accounted for 16.8% of the total basket weight). Both of these calculations were performed using the `summarise()` function. These two newly calculated columns were added to the original dataframe as `Basket_Weight` and `Percent`, respectively, forming a new dataframe `veggiedata2`.  
+
+The total weight of all baskets as well as the average weight of each basket was calculated and stored as the variables `weightsum` and `weightaverage`, respectively. Additionally, the total weight of each vegetable category and each vegetable was calculated and stored in the dataframes `categoryweights` and `vegetableweights`. 
+
+``` {r Transforming Vegetable Dataset, message = FALSE, results = "hide"}
+
+# Calculating the total basket weight by measurement date and the percentage of each vegetable weight in each basket
+basketweight <- veggiedata %>%
+  group_by(Date) %>%
+  summarise(Weight = sum(Weight))
+
+veggieweight<- merge(veggiedata, basketweight, by = "Date", all = TRUE)
+colnames(veggieweight) <- c("Date", "Vegetable_Category", "Vegetable", "Weight", "Basket_Weight")  
+
+veggiedata2 <- veggieweight %>%
+  summarise(Date = Date, 
+            Vegetable_Category = Vegetable_Category,
+            Vegetable = Vegetable,
+            Weight = Weight,
+            Basket_Weight = Basket_Weight,
+            Percent = (veggieweight$Weight / veggieweight$Basket_Weight)*100) %>% 
+  mutate_if(is.numeric, ~round(., 1))
+
+# Calculating total weight of all baskets and average basket weight
+weightsum <- sum(basketweight$Weight)
+weightaverage <- round(mean(basketweight$Weight), digits = 1)
+
+# Calculating total weight of each vegetable category and each vegetable
+categoryweights <- veggiedata %>%
+  group_by(Vegetable_Category) %>%
+  summarise(Weight = sum(Weight)) %>%
+  arrange(desc(Weight))
+
+vegetableweights <- veggiedata %>%
+  group_by(Vegetable) %>%
+  summarise(Weight = sum(Weight)) %>%
+  arrange(desc(Weight))
+
+```
+
+For neatness, the environment was cleared of all unneeded objects except for the final tidy `veggiedata2`, `categoryweights` and `basketweight` dataframes as well as the two variables `weightaverage`and `weightsum`.
 
 ```{r Clearing the Environment}
 # remove all unneeded objects from environment
-rm(data1, date, rawdata, veg, vegcat, weight, cnames, filepath, nc, nr)
+rm(veggiedata, veggieweight, data1, date, rawdata, veg, vegcat, weight, cnames, filepath, nc, nr)
 
 ```
 
 ### Weather Data
 
-With the `head()` function a sneak peak at the original dataset can be taken to see its stucture. The parameter was set to `15` to be able to properly see the format. The first 9 rows of the dataset will not be needed and were deleted to generate `data2`. The first step was to transform the date-time column into a properly formatted date. This was done using `str_split_fixed()` to split the original column into two columns, date and time, respectively, separated by the letter `"T"`. The date column was transformed into `date` format using `ymd()` (the time column was not needed for this project). This date column was bound to the data using `cbind()` to generate the dataframe `weather`. The original, messy date-time column was removed. The class of the columns containing the weather data were changed to `numeric` using `transform()`. Finally, all columns were renamed appropriately using `colnames()`. 
+With the `head()` function a sneak peak at the original dataset can be taken to see its stucture. The parameter was set to `15` to be able to properly see the format. The first 9 rows of the dataset will not be needed and were deleted to generate `data2`. The first step was to transform the date-time column into a properly formatted date. This was done using `str_split_fixed()` to split the original column into two columns, date and time, respectively, separated by the letter `"T"`. The date column was transformed into `date` format using `ymd()` (the time column was not needed for this analysis). This date column was bound to the data using `cbind()` to generate the dataframe `weather`. The original, messy date-time column was removed. The class of the columns containing the weather data were changed to `numeric` using `transform()`. Finally, all columns were renamed appropriately using `colnames()`. 
 
 ```{r Selecting Relevant Rows/Columns from Weather Dataset, message = FALSE, results = "hide"}
 # Taking a look at the original dataset
@@ -203,9 +243,9 @@ colnames(weather) <- c("Date", "Temperature_C", "Sunshine_min", "Precipitation_m
 
 ```
 
-Although the `weather` dataframe now appears neat, it is not yet in the tidy format. In the next steps individual dataframes for each weather condition were generated with just one value per day (i.e. the average daily temperature, the daily sum of precipitation, etc). For the measurements of temperature, humidity, and cloudcover the daily average values were calculated by grouping data by `Date` in the `weather` dataset and calculating the mean value. Similarily, for the measurements of sunshine, snow, and precipitation the daily totals were calculated by grouping data by `Date` in the `weather` dataset and calculating the sum of each. In order to generate the final `weather2` dataframe an additional column with the name of the measurement (i.e. `"Temperature_C"`, `"Sunshine_min"`) was made and placed in between the date and the measurement value columns. Using `nrow()` the number of rows (i.e. the number of measurment days) was calculated and stored as `days`. This variable was then used to generate the correct length for the column containing the `"Condition"`.  For each weather condition the three columns were renamed to `"Date"`, `"Condition"`, and `"Measurement"`. The six individual dataframes were then all joined together using `rbind()` to generate the final compact tidy dataframe `weather2`.  
+Although the `weather` dataframe now appears neat, it is not yet in the tidy format. In the next steps individual dataframes for each weather condition were generated with just one value per day (i.e. the average daily temperature, the daily sum of precipitation, etc). For the measurements of temperature, humidity, and cloudcover the daily average values were calculated by grouping data by `Date` in the `weather` dataset and calculating the mean value. Similarily, for the measurements of sunshine, snow, and precipitation the daily totals were calculated by grouping data by `Date` in the `weather` dataset and calculating the sum of each. In order to generate the final `weather2` dataframe an additional column with the name of the measurement (i.e. `"Temperature_C"`, `"Sunshine_min"`) was made and placed in between the date and the measurement value columns. Using `nrow()` the number of rows (i.e. the number of measurement days) was calculated and stored as `days`. This variable was then used to generate the correct length for the column containing the `"Condition"`. For each weather condition the three columns were renamed to `"Date"`, `"Condition"`, and `"Measurement"`. The six individual dataframes were then all joined together using `rbind()` to generate the final compact tidy dataframe `weather2`.  
 
-``` {r Generating Individual Tidy Datasets for each Weather Condition, message = FALSE, results = "hide"}
+``` {r Generating Tidy Datasets for each Weather Condition & Transforming Dataset, message = FALSE, results = "hide"}
 
 # Temperature: daily average temperture (average)
 temperature <- weather %>%
@@ -272,10 +312,7 @@ colnames(cloudcover) <- c("Date", "Condition", "Measurement")
 # make one dataframe
 weather2 <- rbind(cloudcover, precipitation, humidity, temperature, snowfall, sunshine)
 
-# average <- weather %>%
-#   group_by(weather$date3) %>%
-#   summarise_all(.funs = mean) %>%
-#   ungroup()
+weather2$Measurement <- round(weather2$Measurement, digits = 1)
 
 ```
 
@@ -289,27 +326,17 @@ rm(weather, cloud1, cloudcover, hum1, humidity, precip1, precipitation, snow1, s
 
 ## Data Exploration
 
-In this section, I decided to explore the `veggiedata` dataset and see if I can find interesting correlations with the `weather2` dataset. For this exploratory data analysis I used `ggplot()` to graphically display the data. 
+In this section, I explored the `veggiedata2` dataset to see if I could find interesting correlations to the `weather2` dataset. For this exploratory data analysis I used `ggplot()` and `plotly()` to graphically display the data, as well as a number of functions from the `tidyverse` package.  
 
 ### Distribution of different Vegetable Types throughout the Year
 
-To visualise the distribution of different vegetable categories in each basket throughout the entire measurment period, the plot `allveg1` was generated. First, the `weightsum` dataframe was generated from `veggiedata` by grouping all `weights` by `Date` and using the `summarise()` function to calculate the total weight of each basket. Using `mean()` the average weight of each basket was calculated and assigned to `averageweight`. Using `ggplot()` the barplot `allveg1` was generated. A horizontal line marking the average basket weight was added to the plot using `geom_hline()` with the value of `averageweight` as its y-intercept.       
+To visualise the distribution of different vegetable categories in each basket throughout the entire measurment period, the plot `allveg1` was generated with `ggplot()`. A horizontal line marking the average basket weight was added to the plot using `geom_hline()` with the value of `weightaverage` as its y-intercept. Similarly, the plot `allveg2` was created using `plotly()`. The horizontal line indicating the average basket weight was drawn using the function defined as `hline`. In my opinion, one of the clear advantages of the `allveg2` plot is the interactive nature of the graph itself, even though I find the syntax of `ggplot()` easier to navigate. As evidented by the `allveg2` code and the final plot, there is room for improvement.  
+The heaviest basket was on the 11.05.2021 with 6.742kg, and the lightest on the 02.03.2021 and 09.03.2021 with 2.286kg each. The average basket weight was 4.801kg, which surpasses the expected average weight of 4.25kg (the expected weight range is between 3.5kg and 5kg).          
 
 ```{r data exploration 1}
 
-# Calculating total basket weight per measurement date
-weightsum <- veggiedata %>%
-  group_by(Date) %>%
-  summarise(Weight = sum(Weight)) %>%
-  ungroup()
-
-weightsumtotal <- sum(weightsum$Weight)
-
-# Calculating the average weight of each basket
-averageweight <- round(mean(weightsum$Weight), digits = 1)
-
-# Plotting: 
-allveg1 <- ggplot(data=veggiedata, 
+# Plotting (ggplot): 
+allveg1 <- ggplot(data=veggiedata2, 
                   aes(x=Date, y=Weight)) +
   geom_bar(stat = "identity", 
            aes(fill = Vegetable_Category), color = "black") +
@@ -322,29 +349,100 @@ allveg1 <- ggplot(data=veggiedata,
   scale_x_date(date_breaks = "1 month", 
                date_labels = "%m/%y") +
   scale_y_continuous(name = "Weight (gr)", breaks = seq(0, 7000, 1000)) +
-  geom_hline(yintercept = mean(weightsum$Weight), 
+  geom_hline(yintercept = weightaverage, 
              col = "black",  
              lwd = 0.5, 
              linetype = "dotted") +
   annotate("text", 
-           x = as.Date("2021-11-23"), 
-           y = c(5200,5000, 4600), 
-           label = c("Mean Basket","Weight (gr):", averageweight), 
-           size = 2.7) 
+           x = as.Date("2021-02-01"), 
+           y = c(5430, 5230, 5030), 
+           label = c("Mean Basket","Weight:", paste0(weightaverage, "gr")), 
+           size = 2.5) 
 allveg1
 
+# Plotting (plotly):
+
+hline <- function(y = 0, color = "blue") {
+  list(
+    type = "line", 
+    x0 = 0, 
+    x1 = 1, 
+    xref = "paper",
+    y0 = y, 
+    y1 = y, 
+    line = list(color = color, 
+                size = 0.5)
+  )
+} # function taken from https://stackoverflow.com/questions/34093169/horizontal-vertical-line-in-plotly
+
+# define custom colours
+custom_col <- c("darkmagenta", "lemonchiffon", "aliceblue", "aquamarine", "beige","navy", "blue",
+                "cadetblue", "blueviolet", "cyan", "#F08080", "deeppink", "#FF00FF", "gold", "darkcyan",
+                "yellow", "mediumvioletred")
+custom_col <- setNames(custom_col, c("Tomato", "Potato", "Herbs", "Celery", "Aubergine", "Squash", "Fennel", "Capsicum", "Salad", "Onions", "Cucumber", "Cabbage", "Root Vegetable", "Leafy Greens", "Corn", "Beans", "Other"))
+
+allveg2 <- plot_ly(data = veggiedata2, 
+                    x = ~Date, 
+                    y = ~Weight, 
+                    color = ~Vegetable_Category,
+                    text = ~Vegetable,
+                    colors = custom_col,
+                    textposition = 'none',
+                    type = "bar", 
+                    marker = list(line = list(color = 'rgb(8,48,107)',
+                                               width = 0.5)),
+                    hovertemplate = paste('<b>Vegetable</b>: %{text}' ,
+                                   '<br><b>Weight</b>: %{y}gr', 
+                                   '<br><b>Date</b>: %{x}',
+                                   '<extra></extra>'), 
+                    hoverinfo = 'text' ) %>%
+          layout(barmode = 'stack',
+                    title = "Distribution of Vegetable Types throughout the Year",
+                    plot_bgcolor='#e5ecf6',
+                    xaxis = list(
+                      title = "", 
+                      type = 'date'),
+                    yaxis = list(title = "Weight (grams)"),
+                    legend = list(orientation = 'h', size = 3),
+                    font = list(family = "Arial")) %>%
+          add_trace(y=weightaverage, 
+                    type = "scatter", 
+                    mode="lines+markers", 
+                    showlegend = FALSE)
+          # add_text(showlegend = FALSE,
+          #          x = "2021-02-01",
+          #          y = 5200,
+          #          text = paste('Average Basket Weight: <br>', weightaverage, 'grams'),
+          #          textfont = list(color = "blue",
+          #                          size = 7,
+          #                          family = "Arial")) %>%
+     
+allveg2
+
+# allveg3<-add_trace(allveg2, 
+#              y=weightaverage, type = "scatter", mode="lines+markers", showlegend = FALSE)
+# allveg3
+
+# finding the heaviest and lightest baskets
+
+heaviest <- basketweight[which.max(basketweight$Weight),]
+print(heaviest)
+
+lightest <- basketweight[which.min(basketweight$Weight),]
+print(lightest)
 
 ```
 
-
 ### Correlation of Vegetable Categories and Daily Average Temperature 
 
-To take a closer look at the vegetable distribution in the basket throughout the year, subsets of `veggiedata` were plotted and correlated with the daily average temperature from the `weather2` dataset. By flitering by the term `Cabbage` in `Vegetable_Category`, the dataframe `cabbage` was generated from `veggiedata`. Similarly, by filtering by the term `Temperature_DailyAverage` in `Condition` in the `weather2` dataframe, the dataframe `temp` was generated. Using `ggplot()` the barplot `plotcabbage` was created showing the distribution of cabbage types over time. This plot was then added to the line graph showing the daily average temperature in the plot `cabbagetemp`.       
+To take a closer look at the vegetable distribution in the basket throughout the year, subsets of `veggiedata2` were plotted and correlated with the daily average temperature from the `weather2` dataset. By flitering by the term `Cabbage` in `Vegetable_Category`, the dataframe `cabbage` was generated from `veggiedata2`. Similarly, by filtering by the term `Temperature_DailyAverage` in `Condition` in the `weather2` dataframe, the dataframe `temp` was generated. Using `ggplot()` the barplot `plotcabbage` was created showing the distribution of cabbage types over time. This plot was then added to the line graph showing the daily average temperature in the plot `cabbagetemp`. The code for the `cabbagetemp` plot was a bit tricky given the secondary y-axis. Generally speaking, secondary axes can be very misleading, however in this case I feel that the graph clearly displays the weight and temperature on the right and left y-axis, respectively, and that it is clear to the reader which bars and curves belong to which axis.
+
+Subsets of the `cabbage` dataframe based on the seasons were generated to find the sum of total amount of cabbage received in these time periods. Most cabbage was recieved in the winter (12.394kg) and the least in the autumn (2.986kg), with spring and summer falling in between (9.295kg and 5.146kg, respectively). Warmer temperatures correlate with less cabbage. As not the complete set of seasonal data from Autumn 2020 or Winter 2021 have been collected, these values are not representative for this comparison.
 
 ```{r data exploration 2, message = FALSE}
 
 # Cabbage Types and Temperature
-cabbage <- veggiedata %>%
+cabbage <- veggiedata2 %>%
   filter (Vegetable_Category == "Cabbage")
 
 cabbage$Vegetable <- gsub("Giant Kohlrabi", "Kohlrabi", cabbage$Vegetable) 
@@ -406,12 +504,52 @@ cabbagetemp <- plotcabbage +
                      name = "Average Daily Temperature (C)")) +  
   scale_colour_gradient(low = "purple", high = "orange") 
 cabbagetemp
-  
+
+# how many kilos of cabbage per season?
+cabbage$Date <- as.Date(cabbage$Date, format= "%Y-%m-%d")
+
+cabbage_autumn20 <- cabbage %>%
+  filter(Date < "2020-11-30") %>%
+  summarise(Season = "Autumn_2020",
+            Total_Weight_gr = sum(Weight)) 
+
+cabbage_winter20 <- cabbage %>%
+  filter(Date > "2020-12-01" & Date < "2021-02-28") %>%
+  summarise(Season = "Winter_2020",
+            Total_Weight_gr = sum(Weight)) 
+
+cabbage_spring21 <- cabbage %>%
+  filter(Date > "2021-03-01" & Date < "2021-05-31") %>%
+  summarise(Season = "Spring_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+cabbage_summer21 <- cabbage %>%
+  filter(Date > "2021-06-01" & Date < "2021-08-31") %>%
+  summarise(Season = "Summer_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+cabbage_autumn21 <- cabbage %>%
+  filter(Date > "2021-09-01" & Date < "2021-11-30") %>%
+  summarise(Season = "Autumn_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+cabbage_winter21 <- cabbage %>%
+  filter(Date > "2021-12-01" & Date < "2022-02-28") %>%
+  summarise(Season = "Winter_2021",
+            Total_Weight_gr = sum(Weight))
+
+cabbage_seasontotal <- rbind(cabbage_autumn20, cabbage_winter20, cabbage_spring21, cabbage_summer21, cabbage_autumn21, cabbage_winter21)
+print(cabbage_seasontotal)
+
+rm(cabbage_autumn20, cabbage_winter20, cabbage_spring21, cabbage_summer21, cabbage_autumn21, cabbage_winter21)
+
 ```
+
+A similar analysis was performed for root vegetables using the subset `roots` from the original dataframe `veggiedata2`. The most root vegetables are received in the winter and spring with 12.339kg and 13.983kg, autumn closely follows with 10.592kg whereas the summer months only see a total of 3.995kg. Also here, warmer temperatures appear to correlate with less root vegetables.  
 
 ```{r data exploration 3}
 # Root Vegetable Types
-roots <- veggiedata %>%
+roots <- veggiedata2 %>%
   filter (Vegetable_Category == "Root Vegetable")
 
 # To simplify the analysis, some vegetable names are combined
@@ -472,42 +610,67 @@ rootstemp <- plotroots +
   scale_colour_gradient(low = "purple", high = "orange") 
 rootstemp
 
+# how many kilos of root vegetables per season?
+roots$Date <- as.Date(roots$Date, format= "%Y-%m-%d")
+
+roots_autumn20 <- roots %>%
+  filter(Date < "2020-11-30") %>%
+  summarise(Season = "Autumn_2020",
+            Total_Weight_gr = sum(Weight)) 
+
+roots_winter20 <- roots %>%
+  filter(Date > "2020-12-01" & Date < "2021-02-28") %>%
+  summarise(Season = "Winter_2020",
+            Total_Weight_gr = sum(Weight)) 
+
+roots_spring21 <- roots %>%
+  filter(Date > "2021-03-01" & Date < "2021-05-31") %>%
+  summarise(Season = "Spring_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+roots_summer21 <- roots %>%
+  filter(Date > "2021-06-01" & Date < "2021-08-31") %>%
+  summarise(Season = "Summer_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+roots_autumn21 <- roots %>%
+  filter(Date > "2021-09-01" & Date < "2021-11-30") %>%
+  summarise(Season = "Autumn_2021",
+            Total_Weight_gr = sum(Weight)) 
+
+roots_winter21 <- roots %>%
+  filter(Date > "2021-12-01" & Date < "2022-02-28") %>%
+  summarise(Season = "Winter_2021",
+            Total_Weight_gr = sum(Weight))
+
+roots_seasontotal <- rbind(roots_autumn20, roots_winter20, roots_spring21, roots_summer21, roots_autumn21, roots_winter21)
+print(roots_seasontotal)
+
+rm(roots_autumn20, roots_winter20, roots_spring21, roots_summer21, roots_autumn21, roots_winter21)
+
 ```
 
+In the following section I looked at the amounts of the two types of carrots in relation to all other vegetables present in each basket. The percentage of each basket's weight made up of carrots is relatively uniform throughout the year, ranging between 10.4% and 16.0% with the winter season of 2020 and the autumn season of 2021 having the least and most, respectively. Out of the 53 baskets recieved, 43 contained carrots and 10 did not.  
 
 ```{r data exploration 4}
 
 # Amount of Carrots
-carrotscolours <- c("Carrots (Orange)" = "turquoise4", "Carrots (Multicolour)" = "mediumpurple2")
+carrotscolours <- c("Carrots (Orange)" = "orange", "Carrots (Multicolour)" = "mediumpurple2")
 
 # Setting the order for the bar chart
-vegorder <- unique(veggiedata$Vegetable)
+vegorder <- unique(veggiedata2$Vegetable)
 vegorder2 <- vegorder[!vegorder %in% c("Carrots (Orange)", "Carrots (Multicolour)")]
 vegorder3 <- c(vegorder2, "Carrots (Multicolour)", "Carrots (Orange)")
 
-veggiedata2 <- veggiedata %>%
+veggiedata3 <- veggiedata2 %>%
   arrange(Date, factor(Vegetable, levels = vegorder3)) 
 
-veggiedata2$Vegetable <- factor(veggiedata2$Vegetable, levels = vegorder3)
+veggiedata3$Vegetable <- factor(veggiedata3$Vegetable, levels = vegorder3)
 
-# Calculating percentages
-basketweight <- veggiedata2 %>%
-  group_by(Date) %>%
-  summarise(Weight = sum(Weight))
-
-veggieweight <- merge(veggiedata2, basketweight, by = "Date", all = TRUE)
-colnames(veggieweight) <- c("Date", "Vegetable_Category", "Vegetable", "Weight", "Basket_Weight")  
-
-veggieweight2 <- veggieweight %>%
-  summarise(Date = Date, 
-            Vegetable_Category = Vegetable_Category,
-            Vegetable = Vegetable,
-            Weight = Weight,
-            Basket_Weight = Basket_Weight,
-            Percent = (veggieweight$Weight / veggieweight$Basket_Weight)*100) %>% mutate_if(is.numeric, ~round(., 1))
+veggiedata3$Percent <- paste(veggiedata3$Percent, "%", sep="")
 
 # Plotting
-plotcarrots <- ggplot(veggieweight2, aes(x=Date, y = Weight, fill = Vegetable)) +  
+plotcarrots <- ggplot(veggiedata3, aes(x=Date, y = Weight, fill = Vegetable)) +  
   geom_bar(stat = "identity") +
   xlab("Date") +
   ylab("Weight (gr)") +
@@ -516,7 +679,8 @@ plotcarrots <- ggplot(veggieweight2, aes(x=Date, y = Weight, fill = Vegetable)) 
   scale_x_date(date_breaks = "1 month", date_labels = "%m/%y") +
   scale_fill_manual(values = carrotscolours) +
   theme(plot.title = element_text(face = "bold", hjust = 0.5), 
-        legend.position = "none", 
+        legend.position = "bottom", 
+        legend.key.size = unit(0.5, 'cm'),
         legend.title = element_blank(),
         axis.text.x = element_text(angle = 45, vjust = 0.5, hjust = 0.5),
         axis.title.x = element_text(size = 10),
@@ -527,38 +691,64 @@ plotcarrots <- ggplot(veggieweight2, aes(x=Date, y = Weight, fill = Vegetable)) 
   geom_text(aes(x = as.Date(02/21, origin = "2021-01-15"), y = 7500, label = "Winter")) +
   geom_text(aes(x = as.Date(02/21, origin = "2021-04-15"), y = 7500, label = "Spring")) +
   geom_text(aes(x = as.Date(02/21, origin = "2021-07-15"), y = 7500, label = "Summer")) +
-  geom_text(aes(x = as.Date(02/21, origin = "2021-10-15"), y = 7500, label = "Autumn")) 
-
-
-# +
-#   geom_text(aes(label = ifelse(c(Vegetable == "Carrots (Orange)" | Vegetable == "Carrots (Multicolour)"), Percent, "")), 
-#             position = position_stack(vjust = 0.5),
-#             angle = 90,
-#             size = 1.5)
+  geom_text(aes(x = as.Date(02/21, origin = "2021-10-15"), y = 7500, label = "Autumn")) +
+  geom_text(aes(label=ifelse(Vegetable == "Carrots (Orange)" | Vegetable == "Carrots (Multicolour)",
+                             Percent, "")), 
+            size = 1.5, 
+            angle = 90, 
+            position = position_stack(vjust = 0.5)) 
 plotcarrots
 
+# average amount of carrots per season
+carrots <- veggiedata2 %>%
+  filter(Vegetable == "Carrots (Orange)" | Vegetable == "Carrots (Multicolour)")
 
+carrots$Date <- as.Date(carrots$Date, format= "%Y-%m-%d")
 
-plotlycarrots <- ggplotly(plotcarrots, 
-                          tooltip = veggieweight2$Percent)
-plotlycarrots
+carrots_autumn20 <- carrots %>%
+  filter(Date < "2020-11-30") %>%
+  summarise(Season = "Autumn_2020",
+            Average_Percent = mean(Percent)) 
+
+carrots_winter20 <- carrots %>%
+  filter(Date > "2020-12-01" & Date < "2021-02-28") %>%
+  summarise(Season = "Winter_2020",
+            Average_Percent = mean(Percent)) 
+
+carrots_spring21 <- carrots %>%
+  filter(Date > "2021-03-01" & Date < "2021-05-31") %>%
+  summarise(Season = "Spring_2021",
+            Average_Percent = mean(Percent)) 
+
+carrots_summer21 <- carrots %>%
+  filter(Date > "2021-06-01" & Date < "2021-08-31") %>%
+  summarise(Season = "Summer_2021",
+            Average_Percent = mean(Percent)) 
+
+carrots_autumn21 <- carrots %>%
+  filter(Date > "2021-09-01" & Date < "2021-11-30") %>%
+  summarise(Season = "Autumn_2021",
+            Average_Percent = mean(Percent)) 
+
+carrots_winter21 <- carrots %>%
+  filter(Date > "2021-12-01" & Date < "2022-02-28") %>%
+  summarise(Season = "Winter_2021",
+            Average_Percent = mean(Percent))
+
+carrots_seasontotal <- rbind(carrots_autumn20, carrots_winter20, carrots_spring21, carrots_summer21, carrots_autumn21, carrots_winter21)
+print(carrots_seasontotal)
+
+rm(carrots_autumn20, carrots_winter20, carrots_spring21, carrots_summer21, carrots_autumn21, carrots_winter21)
+
+# how many times were carrots recieved?
+
+basket_number <- sum(!duplicated(veggiedata2$Date))
+yes_carrots <- sum(!duplicated(carrots$Date))
+no_carrots <- basket_number - yes_carrots
+
 ```
 
 ```{r data exploration 5}
-
-# adding weight=0 for multicoloured carrots to all rows/dates for which no multicoloured carrots were present in the basket
-# multicarrots <- filter(veggiedata, Vegetable == "Carrots (Multicolour)")
-# mx <- nrowbasket_nocarrots - nrow(multicarrots)
-# mv <- c(NA, "Root Vegetable", "Carrots (Multicolour)", 0)
-# rep.row <- function(mv, n) { 
-#   matrix(rep(mv, each = mx), nrow = mx)
-#   }
-# multi_zero <- as.data.frame(rep.row(mv, mx))
-# colnames(multi_zero) <- c("Date", "Vegetable_Category", "Vegetable", "Weight")
-# multicarrots2 <- rbind(multicarrots, multi_zero)
-# multicarrots2$Weight <- as.numeric(multicarrots2$Weight)
-
-
 
 
 
